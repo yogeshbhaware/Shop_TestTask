@@ -1,6 +1,7 @@
 import { combineReducers } from "redux";
-import { DataReducer, TestReducer } from "./reducer";
+import { DataReducer, GetSHopReducer, TestReducer } from "./reducer";
 
-export const reducer = combineReducers({
-    shopData:TestReducer
+ export const reducer = combineReducers({
+   
+    shopData:TestReducer,
 })

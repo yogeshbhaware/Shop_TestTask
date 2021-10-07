@@ -13,3 +13,13 @@ export const addshop = (data) => {
     payload: localData,
   };
 };
+
+export const getShop = () => {
+  let localData = JSON.parse(localStorage.getItem("shops"));
+  localData = localData ? localData : [];
+  console.log("action payload get shop", localData)
+  return{
+    type:GET_SHOP,
+    payload:localData
+  };
+}

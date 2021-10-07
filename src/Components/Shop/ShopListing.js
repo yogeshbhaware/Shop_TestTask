@@ -1,23 +1,43 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector, useDispatch, connect } from "react-redux";
 import { category, area, status } from "../../const";
-import { addshop } from "../../Redux/Actions/action";
+import { getShop } from "../../Redux/Actions/action";
 
 function ShopListing() {
-  
+  const dispatch = useDispatch();
+  useEffect(() => {
+    dispatch(getShop());
+  }, []);
+
 
   let shopdata = useSelector((state) => {
-    return state.shopData.shops;
+    return state
   });
-  shopdata = shopdata ? shopdata : [];
-  let shopDataCopy = shopdata;
-  console.log("this is selector data", shopdata);
-  var today = new Date();
-  const [shopsList, setShopsList] = useState(shopdata);
 
-const [searchData, setSearchData] = useState({
+  console.log("shopdata",shopdata)
+  const [shopsList, setShopsList] = useState();
+
+  useEffect(()=> {
+    
+  if(shopdata.shopData){
+    const data= shopdata.shopData.shops
+    data?.length>0&&data.map((item) => {
+          const startdate = new Date(item.startdate);
+          const enddate = new Date(item.enddate);
+          item.status = today > startdate && today < enddate ? true : false;
+        });
+    setShopsList(data)
+  }
+  },[shopdata])
+
+
+  let shopDataCopy = shopdata.shopData.shops;
+  var today = new Date();
+
+ 
+  const [searchData, setSearchData] = useState({
     shoparea: "",
     shopcategory: "",
     status: "",
@@ -30,14 +50,6 @@ const [searchData, setSearchData] = useState({
     reset,
   } = useForm();
 
-  useEffect(() => {
-    shopsList.map((item) => {
-      const startdate = new Date(item.startdate);
-      const enddate = new Date(item.enddate);
-      item.status = today > startdate && today < enddate ? true : false;
-    });
-    setShopsList(shopsList);
-  }, [shopdata]);
 
   const handleDelete = (id) => {
     let localData = JSON.parse(localStorage.getItem("shops"));
@@ -46,41 +58,46 @@ const [searchData, setSearchData] = useState({
     setShopsList(localData);
   };
 
-  const filterData = () => {
-      shopDataCopy = shopDataCopy.filter((item) => {
-      let status = JSON.parse(searchData.status) 
-      if (searchData.shoparea === "" && searchData.shopcategory === "") {
-        if (searchData.status === "") {
+
+  const SubmitHandler = (data) => {
+
+    shopDataCopy = shopDataCopy.filter((item) => {
+      let status = JSON.parse(data.status);
+      if (data.shoparea === "" && data.shopcategory === "") {
+        if (data.status === "") {
           return item;
-        }else if( item.status === status){
-          console.log("Status",searchData.status)
+        } else if (item.status === status) {
+          console.log("Status", data.status);
           return item;
         }
-      } else if (searchData.shoparea !== "" || searchData.shopcategory !== "") {
+      } else if (data.shoparea !== "" || data.shopcategory !== "") {
         let showdata;
-        const shopArea = searchData?.shoparea?.toLowerCase()
-        const shopCategory = searchData?.shopcategory?.toLowerCase()
-        const itemArea = item.shoparea.toLowerCase()
-        const itemCategory =  item.shopcategory.toLowerCase()
+        const shopArea = data?.shoparea?.toLowerCase();
+        const shopCategory = data?.shopcategory?.toLowerCase();
+        const itemArea = item.shoparea.toLowerCase();
+        const itemCategory = item.shopcategory.toLowerCase();
 
-        if (itemArea.includes(shopArea) &&
-          searchData.shopcategory === "" &&
+        if (
+          itemArea.includes(shopArea) &&
+          data.shopcategory === "" &&
           item.status == status
         ) {
           showdata = item;
-        } else if (itemCategory.includes(shopCategory) &&
-          searchData.shoparea === "" &&
+        } else if (
+          itemCategory.includes(shopCategory) &&
+          data.shoparea === "" &&
           item.status === status
         ) {
           showdata = item;
         } else if (
           item.status === status &&
-          searchData.shoparea === "" &&
-          searchData.shopcategory === ""
+          data.shoparea === "" &&
+          data.shopcategory === ""
         ) {
           showdata = item;
-        } else if (itemCategory.includes(shopCategory) &&
-         itemArea.includes(shopArea) &&
+        } else if (
+          itemCategory.includes(shopCategory) &&
+          itemArea.includes(shopArea) &&
           item.status === status
         ) {
           showdata = item;
@@ -88,26 +105,14 @@ const [searchData, setSearchData] = useState({
         item = showdata;
         return item;
       }
+     
     });
-
-    setShopsList(shopDataCopy);
+  setShopsList(shopDataCopy)    
   };
-
-  const SubmitHandler = (data) => {
-    console.log("this is search data", data);
-  
-    setSearchData({
-      shoparea: data.shoparea,
-      shopcategory: data.shopcategory,
-      status: data.status,
-    });
-    reset();
-
-    filterData();
-  };
-
   return (
+    
     <div className="container-fluid">
+    {console.log(123,shopsList)}
       <form onSubmit={handleSubmit(SubmitHandler)} className="form-wrapper">
         <div class="row mb-4 align-items-end mt-4">
           <div className="col-10">
@@ -121,7 +126,7 @@ const [searchData, setSearchData] = useState({
                   {...register("shoparea")}
                 >
                   {area.map((data, index) => {
-                    return <option value={data.value}>{data.text}</option>;
+                    return <option key={index} value={data.value}>{data.text}</option>;
                   })}
                 </select>
               </div>
@@ -145,12 +150,9 @@ const [searchData, setSearchData] = useState({
                   {...register("status")}
                 >
                   {status.map((data, index) => {
-                    if(index !== 0){
+                    if (index !== 0) {
                       return <option value={data.value}>{data.text}</option>;
-
                     }
-                    
-                    
                   })}
                 </select>
               </div>
@@ -190,13 +192,22 @@ const [searchData, setSearchData] = useState({
               <th scope="col">Shop Status</th>
             </tr>
           </thead>
-          {shopsList === undefined || shopsList.length === 0 ? (
-            <tr><td colSpan="8" style={{fontSize: "18px",
-    background: "#e9ffee",
-    padding: "50px",
-    fontWeight: "bold" }}>No Data Found</td></tr>
-          ) : (
-            shopsList.map((item, index) => {
+          {shopsList?.length === 0 ? (
+            <tr>
+              <td
+                colSpan="8"
+                style={{
+                  fontSize: "18px",
+                  background: "#e9ffee",
+                  padding: "50px",
+                  fontWeight: "bold",
+                }}
+              >
+                No Data Found
+              </td>
+            </tr>
+          ) : 
+            shopsList?.length>0 && shopsList.map((item, index) => {
               return (
                 <tbody>
                   <tr>
@@ -221,7 +232,7 @@ const [searchData, setSearchData] = useState({
                 </tbody>
               );
             })
-          )}
+          }
         </table>
       </div>
     </div>
